@@ -379,12 +379,12 @@ const FONTS=[
   {g:'new',id:'kyobo1',ko:'교보 손글씨 1 (2024 박서우)',fam:'Kyobo Handwriting 2024',w:400,label:'교보손글씨1'},
   {g:'new',id:'kyobo2',ko:'교보 손글씨 2 (2020 박도연)',fam:'Kyobo Handwriting 2020',w:400,label:'교보손글씨2'},
   {g:'new',id:'parkdahyun',ko:'온글잎 박다현체',fam:'Ownglyph ParkDaHyun',w:400,label:'박다현체'}];
-// 볼펜 모양(mm, 펜촉이 왼쪽): 알리바바 TL-140(길이 117mm). 나머지 치수는 상품 옆모습 사진의 비율로 잰 값이다
-// L = 전체 길이, R = 몸통 반지름(지름 13.5mm), nib = 금속 펜촉 길이, seam = 앞·뒤 몸통 이음매(여기서 펜촉까지 천천히 좁아진다),
+// 볼펜 모양(mm, 펜촉이 왼쪽): 알리바바 TL-140(몸통 길이 117mm). 나머지 치수는 상품 옆모습 사진의 윤곽을 픽셀 단위로 잰 값이다
+// L = 전체 길이(몸통 117 + 나온 펜촉 3), R = 몸통 반지름(지름 13.8mm), nib = 금속 펜촉 길이, seam = 앞·뒤 몸통 이음매,
 // sh = 몸통 끝(어깨), btnR = 노크 버튼 반지름, clipX0~clipX1 = 클립, clipT = 클립 두께, clipGap = 몸통과 클립 사이
-const PEN={L:117,R:6.75,nib:2.5,seam:57.2,sh:108,btnR:5,clipX0:66.7,clipX1:104.1,clipT:2,clipGap:1.8};
-// 인쇄 영역(화면의 점선): 가로 46 × 세로 7mm. 이음매 뒤쪽 몸통(57.2~108mm, 클립이 달린 쪽)에만 인쇄한다. 펜촉 끝에서 x0~x1, 세로 h. pad = 앞·뒤 맞춤일 때 영역 끝에서 띄우는 여백
-const ZONE={x0:59.5,x1:105.5,h:7,pad:0};ZONE.w=ZONE.x1-ZONE.x0-ZONE.pad*2; // w = 문구가 차지할 수 있는 최대 폭
+const PEN={L:120,R:6.9,nib:3,seam:58.9,sh:110.6,btnR:5,clipX0:68.6,clipX1:104.8,clipT:2,clipGap:1.8};
+// 인쇄 영역(화면의 점선): 가로 46 × 세로 7mm. 이음매 뒤쪽 몸통(58.9~110.6mm, 클립이 달린 쪽)에만 인쇄한다. 펜촉 끝에서 x0~x1, 세로 h. pad = 앞·뒤 맞춤일 때 영역 끝에서 띄우는 여백
+const ZONE={x0:61.5,x1:107.5,h:7,pad:0};ZONE.w=ZONE.x1-ZONE.x0-ZONE.pad*2; // w = 문구가 차지할 수 있는 최대 폭
 // 인쇄 위치 = 인쇄 영역 안에서의 맞춤 (앞 = 펜촉 쪽 끝, 중간 = 가운데, 뒤 = 클립 쪽 끝)
 const POS={front:{ko:'앞',al:'left'},mid:{ko:'중간',al:'center'},back:{ko:'뒤',al:'right'}};
 // 글자 크기(mm): max[줄 수] = 1줄은 7mm, 2줄은 3mm까지. def[줄 수] = 처음 크기, legible = 이보다 작아지면 경고
@@ -466,11 +466,13 @@ function shade(hex,a){const n=parseInt(hex.slice(1),16),t=a<0?0:255,m=Math.abs(a
 
 /* ---------- 그리기 ---------- */
 // 좌표는 mm. 원점 = 펜촉 끝(왼쪽)의 몸통 중심선
-function bodyPath(c){const {L,R,nib,seam,sh,btnR}=PEN,r=1.6,b=2.6,x1=nib+7.8,x2=seam*.55;c.beginPath();
-  c.moveTo(nib,-1.2);c.bezierCurveTo(x1,-3.6,x2,-R+.25,seam,-R);          // 앞 몸통: 이음매에서 펜촉까지 천천히 좁아진다
+// 앞 몸통은 사진 윤곽 그대로: 끝이 지름 4mm쯤으로 뭉툭하게 끝나고(반지름 2mm), 거기서 통통하게 부풀어 이음매에서 몸통 굵기가 된다
+// (몸통 끝에서 거리 → 반지름: 0.6→2.0, 3.5→3.0, 8→4.2, 14→5.2, 23→6.1, 35→6.5mm)
+function bodyPath(c){const {L,R,nib,seam,sh,btnR}=PEN,r=1.6,x0=nib+.7,x1=nib+6,x2=nib+19.5;c.beginPath();
+  c.moveTo(nib,-1.2);c.quadraticCurveTo(nib+.05,-1.95,x0,-2.05);c.bezierCurveTo(x1,-4.6,x2,-R+.2,seam,-R); // 뭉툭한 끝 → 통통한 앞 몸통
   c.lineTo(sh-r,-R);c.quadraticCurveTo(sh,-R,sh,-R+r);c.lineTo(sh,-btnR);  // 뒤 몸통 → 어깨
-  c.lineTo(L-b,-btnR);c.quadraticCurveTo(L,-btnR,L,-btnR+b);c.lineTo(L,btnR-b);c.quadraticCurveTo(L,btnR,L-b,btnR);c.lineTo(sh,btnR); // 노크 버튼(끝이 둥근 원기둥)
-  c.lineTo(sh,R-r);c.quadraticCurveTo(sh,R,sh-r,R);c.lineTo(seam,R);c.bezierCurveTo(x2,R-.25,x1,3.6,nib,1.2);c.closePath()}
+  c.lineTo(L-3.2,-btnR);c.bezierCurveTo(L-1.2,-btnR,L,-3,L,-1.4);c.lineTo(L,1.4);c.bezierCurveTo(L,3,L-1.2,btnR,L-3.2,btnR);c.lineTo(sh,btnR); // 노크 버튼(끝이 둥근 원기둥)
+  c.lineTo(sh,R-r);c.quadraticCurveTo(sh,R,sh-r,R);c.lineTo(seam,R);c.bezierCurveTo(x2,R-.2,x1,4.6,x0,2.05);c.quadraticCurveTo(nib+.05,1.95,nib,1.2);c.closePath()}
 // 글씨 색 칠하기: 단색은 그대로, 그라데이션은 문구의 왼쪽 위 → 오른쪽 아래로(45° 대각선) 색이 바뀐다. x,cy,w,h = 문구가 차지하는 상자(화면 좌표)
 function paintOf(c,col,x,cy,w,h){if(!col.grad)return col.hex;const d=(w+h)/2,g=c.createLinearGradient(x,cy-h/2,x+d,cy-h/2+d);col.grad.forEach((v,i)=>g.addColorStop(i/(col.grad.length-1),v));return g}
 const cssOf=col=>col.grad?`linear-gradient(135deg,${col.grad.join(',')})`:col.hex;
@@ -485,11 +487,11 @@ function drawPen(c,k,ox,oy,p,o={}){const pc=penCol(p),B=pc.hex,{L,R,nib,seam,sh,
   c.save();c.translate(ox,oy);c.scale(k,k);c.lineWidth=1/k;c.lineJoin='round';
   // 클립(몸통 위쪽): 버튼 쪽 끝의 기둥으로 몸통에 붙어 있고, 펜촉 쪽 끝 안쪽에 작은 돌기 두 개가 있다
   c.fillStyle=shade(B,-.1);c.strokeStyle=edge;
-  c.beginPath();c.rect(clipX1-7.6,-R-clipGap-.3,7.2,clipGap+.6);c.fill();c.stroke();
+  c.beginPath();c.rect(clipX1-7.6,-R-clipGap-.3,6.9,clipGap+.6);c.fill();c.stroke();
   for(const [bx,by] of [[clipX0+4.6,-R-clipGap+.45],[clipX0+7,-R-.35]]){c.beginPath();c.arc(bx,by,.62,0,7);c.fill();c.stroke()}
   c.beginPath();c.roundRect(clipX0,-R-clipGap-clipT,clipX1-clipX0,clipT,.7);c.fill();c.stroke();
   // 금속 펜촉
-  c.fillStyle='#b4b7bf';c.beginPath();c.moveTo(0,-.3);c.lineTo(nib+.6,-1.1);c.lineTo(nib+.6,1.1);c.lineTo(0,.3);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#b4b7bf';c.beginPath();c.moveTo(0,-.25);c.lineTo(nib+.5,-1.1);c.lineTo(nib+.5,1.1);c.lineTo(0,.25);c.closePath();c.fill();c.stroke();
   // 몸통
   c.save();if(o.shadow){c.shadowColor=isLight()?'rgba(70,50,20,.3)':'rgba(0,0,0,.6)';c.shadowBlur=22;c.shadowOffsetY=9}
   c.fillStyle=B;bodyPath(c);c.fill();c.restore();
